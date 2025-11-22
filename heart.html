@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>thư tỏ tình</title>
+  <style>
+    /* --- Reset & layout --- */
+    html,body{height:100%;margin:0;padding:0;background:#000;display:flex;align-items:center;justify-content:center;font-family:system-ui,Segoe UI,Roboto,"Helvetica Neue",Arial}
+    .wrap{width:100%;max-width:700px;padding:20px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;gap:18px}
+
+    /* --- Heart container (keeps the pulsing heart area) --- */
+    .heart-area{position:relative;width:500px;height:500px;max-width:90vmin;max-height:90vmin;animation:pulse 1.3s infinite}
+    @keyframes pulse{0%{transform:scale(1)}30%{transform:scale(.9)}60%{transform:scale(1.08)}100%{transform:scale(1)}}
+
+    /* --- Canvas fills the heart-area --- */
+    canvas{display:block;width:100%;height:100%}
+
+    /* --- Decorative center text --- */
+    .center-text{color:#e10ca8;font-size:28px;font-style:italic;text-align:center}
+
+    /* Make sure images and other elements are not selectable while animating */
+    .no-select{user-select:none;-webkit-user-select:none;-ms-user-select:none}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="heart-area no-select">
+      <canvas id="pinkboard" aria-label="Hiệu ứng trái tim"></canvas>
+    </div>
+
+    <div class="center-text">Anh Yêu Em</div>
+  </div>
+
+  <script>
+  /* =====================
+     Settings
+     ===================== */
+  var settings = {
+    particles: {
+      length:   2000,   // maximum amount of particles
+      duration:   2,    // particle duration in sec
+      velocity: 100,    // particle velocity in pixels/sec
+      effect: -1.3,     // acceleration factor (tweak for different motion)
+      size:      13,    // particle size in pixels (base)
+    }
+  };
+
+  /* RequestAnimationFrame polyfill (minimal) */
+  (function(){var lastTime=0;var vendors=['ms','moz','webkit','o'];for(var x=0;x<vendors.length && !window.requestAnimationFrame;x++){window.requestAnimationFrame=window[vendors[x]+'RequestAnimationFrame'];window.cancelAnimationFrame=window[vendors[x]+'CancelAnimationFrame']||window[vendors[x]+'CancelRequestAnimationFrame'];}
+  if(!window.requestAnimationFrame){window.requestAnimationFrame=function(callback){var currTime=new Date().getTime();var timeToCall=Math.max(0,16-(currTime-lastTime));var id=window.setTimeout(function(){callback(currTime+timeToCall);},timeToCall);lastTime=currTime+timeToCall;return id};}
+  if(!window.cancelAnimationFrame){window.cancelAnimationFrame=function(id){clearTimeout(id)};} }());
+
+  /* =====================
+     Geometry / helpers
+     ===================== */
+  function Point(x,y){this.x=(typeof x!=='undefined')?x:0;this.y=(typeof y!=='undefined')?y:0}
+  Point.prototype.clone=function(){return new Point(this.x,this.y)};
+  Point.prototype.length=function(len){if(typeof len==='undefined')return Math.sqrt(this.x*this.x+this.y*this.y);this.normalize();this.x*=len;this.y*=len;return this};
+  Point.prototype.normalize=function(){var l=Math.sqrt(this.x*this.x+this.y*this.y)||1;this.x/=l;this.y/=l;return this};
+
+  /* =====================
+     Particle
+     ===================== */
+  function Particle(){this.position=new Point();this.velocity=new Point();this.acceleration=new Point();this.age=0}
+  Particle.prototype.initialize=function(x,y,dx,dy){this.position.x=x;this.position.y=y;this.velocity.x=dx;this.velocity.y=dy;this.acceleration.x=dx*settings.particles.effect;this.acceleration.y=dy*settings.particles.effect;this.age=0}
+  Particle.prototype.update=function(deltaTime){this.position.x+=this.velocity.x*deltaTime;this.position.y+=this.velocity.y*deltaTime;this.velocity.x+=this.acceleration.x*deltaTime;this.velocity.y+=this.acceleration.y*deltaTime;this.age+=deltaTime}
+  Particle.prototype.draw=function(ctx,image){function ease(t){return (--t)*t*t+1}
+    var t = this.age / settings.particles.duration; if(t>1) t=1;
+    var size = image.width * ease(t);
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, 1 - this.age / settings.particles.duration);
+    ctx.drawImage(image, this.position.x - size/2, this.position.y - size/2, size, size);
+    ctx.restore();
+  };
+
+  /* =====================
+     ParticlePool (circular buffer)
+     ===================== */
+  function ParticlePool(length){
+    this.particles = new Array(length);
+    this.firstActive = 0;
+    this.firstFree = 0;
+    this.duration = settings.particles.duration;
+    for(var i=0;i<length;i++) this.particles[i]=new Particle();
+  }
+  ParticlePool.prototype.add=function(x,y,dx,dy){
+    this.particles[this.firstFree].initialize(x,y,dx,dy);
+    this.firstFree++;
+    if(this.firstFree===this.particles.length) this.firstFree=0;
+    if(this.firstActive===this.firstFree){ this.firstActive++; if(this.firstActive===this.particles.length) this.firstActive=0; }
+  };
+  ParticlePool.prototype.update=function(deltaTime){
+    var i;
+    if(this.firstActive < this.firstFree){
+      for(i=this.firstActive;i<this.firstFree;i++) this.particles[i].update(deltaTime);
+    }
+    if(this.firstFree < this.firstActive){
+      for(i=this.firstActive;i<this.particles.length;i++) this.particles[i].update(deltaTime);
+      for(i=0;i<this.firstFree;i++) this.particles[i].update(deltaTime);
+    }
+    while(this.particles[this.firstActive].age >= this.duration && this.firstActive !== this.firstFree){
+      this.firstActive++;
+      if(this.firstActive === this.particles.length) this.firstActive = 0;
+    }
+  };
+  ParticlePool.prototype.draw=function(ctx,image){
+    var i;
+    if(this.firstActive < this.firstFree){
+      for(i=this.firstActive;i<this.firstFree;i++) this.particles[i].draw(ctx,image);
+    }
+    if(this.firstFree < this.firstActive){
+      for(i=this.firstActive;i<this.particles.length;i++) this.particles[i].draw(ctx,image);
+      for(i=0;i<this.firstFree;i++) this.particles[i].draw(ctx,image);
+    }
+  };
+
+  /* =====================
+     Main: heart shape + rendering
+     ===================== */
+  (function(canvas){
+    if(!canvas) return;
+    var ctx = canvas.getContext('2d');
+    var particles = new ParticlePool(settings.particles.length);
+    var particleRate = settings.particles.length / settings.particles.duration; // particles per sec
+    var lastTime = null;
+
+    // heart parametric function (-PI..PI)
+    function pointOnHeart(t){
+      return new Point(
+        160*Math.pow(Math.sin(t),3),
+        130*Math.cos(t) - 50*Math.cos(2*t) - 20*Math.cos(3*t) - 10*Math.cos(4*t) + 25
+      );
+    }
+
+    // build a small heart image (offscreen canvas) used for particles
+    var particleImage = (function(){
+      var c = document.createElement('canvas');
+      var cx = c.getContext('2d');
+      c.width = settings.particles.size;
+      c.height = settings.particles.size;
+      function to(t){
+        var p = pointOnHeart(t);
+        p.x = settings.particles.size/2 + p.x*settings.particles.size/350;
+        p.y = settings.particles.size/2 - p.y*settings.particles.size/350;
+        return p;
+      }
+      cx.beginPath();
+      var t = -Math.PI, pt = to(t);
+      cx.moveTo(pt.x, pt.y);
+      while(t < Math.PI){ t += 0.01; pt = to(t); cx.lineTo(pt.x, pt.y); }
+      cx.closePath();
+      cx.fillStyle = '#FF5CA4';
+      cx.fill();
+      var img = new Image();
+      img.src = c.toDataURL();
+      return img;
+    })();
+
+    function resize(){
+      // size canvas to its CSS pixels
+      canvas.width = Math.round(canvas.clientWidth * window.devicePixelRatio);
+      canvas.height = Math.round(canvas.clientHeight * window.devicePixelRatio);
+      // scale the drawing so particle sizes are consistent across DPR
+      ctx.setTransform(1,0,0,1,0,0);
+      ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+    }
+
+    function render(now){
+      requestAnimationFrame(render);
+      now = now / 1000; // convert to seconds
+      if(lastTime === null) lastTime = now;
+      var deltaTime = Math.min(0.05, now - lastTime); // clamp large deltas
+      lastTime = now;
+
+      // clear (use CSS pixel size to clear cleanly)
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+
+      // spawn new particles
+      var amount = particleRate * deltaTime;
+      for(var i=0;i<amount;i++){
+        var pos = pointOnHeart(Math.PI - 2*Math.PI*Math.random());
+        var dir = pos.clone().length(settings.particles.velocity);
+        // place particle at canvas center offset by the heart coordinates
+        var x = canvas.clientWidth/2 + pos.x;
+        var y = canvas.clientHeight/2 - pos.y;
+        particles.add(x, y, dir.x, -dir.y);
+      }
+
+      // update + draw
+      particles.update(deltaTime);
+      particles.draw(ctx, particleImage);
+    }
+
+    // initial resize + listeners
+    window.addEventListener('resize', resize, {passive:true});
+    // do one resize after a tiny delay to ensure CSS is computed
+    setTimeout(function(){ resize(); requestAnimationFrame(render); }, 10);
+  })(document.getElementById('pinkboard'));
+  </script>
+</body>
+</html>
