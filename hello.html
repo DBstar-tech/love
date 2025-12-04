@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Love Letter</title>
+<style>
+    body {
+        margin: 0;
+        overflow: hidden;
+        background: #1a1a1a;
+        font-family: "Times New Roman", serif;
+    }
+
+    /* Canvas trái tim nền */
+    #heartCanvas {
+        position: fixed;
+        top: 0; 
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        z-index: 1;
+    }
+
+    /* Lá thư đóng */
+    .letter {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 350px;
+        height: 220px;
+        background: #ffe4e1;
+        border: 3px solid #ff9eb6;
+        border-radius: 10px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        color: #c9184a;
+        font-size: 24px;
+        font-weight: bold;
+        cursor: pointer;
+        z-index: 5;
+        transition: 0.4s;
+    }
+
+    .letter:hover {
+        transform: translate(-50%, -50%) scale(1.05);
+        box-shadow: 0 0 20px #ffb3c6;
+    }
+
+    /* Nội dung thư mở */
+    .content {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 480px;
+        height: 330px;
+        transform: translate(-50%, -50%);
+        background: #fff0f6;
+        border: 4px solid #ffb3c6;
+        border-radius: 12px;
+        padding: 20px;
+        font-size: 18px;
+        color: #c9184a;
+        text-align: center;
+        line-height: 1.6;
+        z-index: 5;
+        display: none;
+        box-shadow: 0 0 25px #ff6b9c;
+        animation: fadeIn 1s ease forwards;
+    }
+
+    /* animation hiện lên */
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translate(-50%, -48%); }
+        to   { opacity: 1; transform: translate(-50%, -50%); }
+    }
+</style>
+</head>
+<body>
+
+<canvas id="heartCanvas"></canvas>
+
+<div class="letter" id="letter">💌 Bấm để mở thư 💌</div>
+
+<div class="content" id="content">
+    <h2>Gửi em,</h2>
+    <p>
+        Anh có điều này muốn nói… <br><br>
+        Từ ngày gặp em, trái tim anh như được thắp sáng.<br>
+        Anh thích nụ cười, thích ánh mắt, thích cả sự dịu dàng của em.<br><br>
+        Nếu được… <br>
+        Cho anh cơ hội được ở cạnh và làm em hạnh phúc nhé. 
+        Yêu em 💗💗💗
+    </p>
+</div>
+
+<script>
+    // ================================
+    // Tạo nền trái tim bay
+    // ================================
+    const canvas = document.getElementById("heartCanvas");
+    const ctx = canvas.getContext("2d");
+
+    function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+    resize();
+    window.onresize = resize;
+
+    const hearts = [];
+    const NUM = 120; // số lượng trái tim
+
+    function randomColor() {
+        const colors = ["#ff4d6d", "#ff758f", "#ffa6c1", "#ffb3d9"];
+        return colors[Math.floor(Math.random() * colors.length)];
+    }
+
+    for (let i = 0; i < NUM; i++) {
+        hearts.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            size: Math.random() * 18 + 10,
+            speed: Math.random() * 0.8 + 0.2,
+            opacity: Math.random(),
+            color: randomColor()
+        });
+    }
+
+    function drawHeart(x, y, size, color, opacity) {
+        ctx.globalAlpha = opacity;
+        ctx.fillStyle = color;
+        ctx.font = size + "px Arial";
+        ctx.fillText("❤", x, y);
+        ctx.globalAlpha = 1;
+    }
+
+    function animate() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        hearts.forEach(h => {
+            h.y -= h.speed;
+            if (h.y < -20) {
+                h.y = canvas.height + 20;
+                h.x = Math.random() * canvas.width;
+            }
+
+            // hiệu ứng ẩn hiện
+            h.opacity = Math.abs(Math.sin(Date.now() / 600 + h.x));
+
+            drawHeart(h.x, h.y, h.size, h.color, h.opacity);
+        });
+
+        requestAnimationFrame(animate);
+    }
+
+    animate();
+
+    // ================================
+    // Sự kiện mở thư
+    // ================================
+    const letter = document.getElementById("letter");
+    const content = document.getElementById("content");
+
+    letter.onclick = () => {
+        letter.style.display = "none";
+        content.style.display = "block";
+    };
+</script>
+
+</body>
+</html>
