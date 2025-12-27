@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Christmas Snow Letter</title>
+
+<style>
+body {
+    margin: 0;
+    overflow: hidden;
+    font-family: "Times New Roman", serif;
+    background: #981042;
+}
+
+/* Canvas nền tuyết */
+#bgCanvas {
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+}
+
+/* Góc trái: cây thông + người tuyết */
+.left-decor {
+    position: fixed;
+    left: 20px;
+    bottom: 20px;
+    z-index: 4;
+    text-align: center;
+}
+
+.tree {
+    font-size: 140px;
+    margin-bottom: -30px;
+}
+
+.snowman {
+    font-size: 230px;
+    animation: sway 3.5s ease-in-out infinite;
+}
+
+@keyframes sway {
+    0%,100% { transform: rotate(0deg); }
+    50% { transform: rotate(2deg); }
+}
+
+/* Hộp quà */
+.gift-box {
+    position: fixed;
+    top: 50%;
+    right: 8%;
+    transform: translateY(-50%);
+    width: 260px;
+    height: 220px;
+    background: #c1121f;
+    border-radius: 14px;
+    cursor: pointer;
+    z-index: 5;
+    box-shadow: 0 0 35px rgba(255,255,255,0.6);
+    transition: 0.4s;
+}
+
+.gift-box:hover {
+    transform: translateY(-50%) scale(1.05);
+}
+
+.lid {
+    position: absolute;
+    top: -55px;
+    left: -10px;
+    width: 280px;
+    height: 65px;
+    background: #9b111e;
+    border-radius: 14px;
+}
+
+.ribbon-v {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 34px;
+    height: 220px;
+    background: white;
+}
+
+.ribbon-h {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 260px;
+    height: 34px;
+    background: white;
+}
+
+.bow {
+    position: absolute;
+    top: -75px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 56px;
+}
+
+.hint {
+    position: absolute;
+    bottom: -42px;
+    width: 100%;
+    text-align: center;
+    color: white;
+    font-size: 18px;
+}
+
+/* Thư */
+.content {
+    position: fixed;
+    top: 50%;
+    right: 6%;
+    transform: translateY(-50%);
+    width: 480px;
+    height: 360px;
+    background: #fefefe;
+    border: 4px solid #ffb3c6;
+    border-radius: 18px;
+    padding: 28px;
+    font-size: 18px;
+    color: #c9184a;
+    text-align: center;
+    line-height: 1.7;
+    z-index: 6;
+    display: none;
+    box-shadow: 0 0 40px rgba(255,255,255,0.85);
+    animation: fadeIn 1s ease forwards;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-45%); }
+    to   { opacity: 1; transform: translateY(-50%); }
+}
+
+h2 {
+    color: #2b0b5e;
+}
+</style>
+</head>
+
+<body>
+
+<canvas id="bgCanvas"></canvas>
+
+<!-- Góc trái -->
+<div class="left-decor">
+    <div class="tree">🎄</div>
+    <div class="snowman">⛄</div>
+</div>
+
+<!-- Hộp quà -->
+<div class="gift-box" id="gift">
+    <div class="lid"></div>
+    <div class="bow">🎀</div>
+    <div class="ribbon-v"></div>
+    <div class="ribbon-h"></div>
+    <div class="hint">❄️ Bấm để mở quà 🎁</div>
+</div>
+
+<!-- Thư -->
+<div class="content" id="content">
+    <h2>Dear An :]] ❄️</h2>
+    <p>
+        giáng sinh tới rồi nè ☃️<br>
+        Trước tiến chúc an giáng sinh ni không lạnh nhé ;] <br>
+        Mong An sẽ có những giây phút hạnh phúc bên gia đình những ngày cuối năm  ❄❄❄<br>
+        Một năm mới mong An sẽ có một năm đầy sucess nhé -.- <br>
+        Bên cạnh chúc an muốn tiền cóa tiền mún bồ quá bồ😎<br>
+        Luôn vui vẻ và hạnh phúc nhé cô gái 😄<br>
+        giáng sinh vui vẻ happy happy :>>> ☃️🎅🎁<br>
+
+                From SOMEONE ://
+    </p>
+</div>
+
+<script>
+// ================================
+// TUYẾT RƠI – BẢN CŨ NHƯNG MƯỢT HƠN
+// ================================
+const canvas = document.getElementById("bgCanvas");
+const ctx = canvas.getContext("2d");
+
+function resize() {
+    canvas.width = innerWidth;
+    canvas.height = innerHeight;
+}
+resize();
+window.addEventListener("resize", resize);
+
+const snowflakes = [];
+const TOTAL = 260;
+
+for (let i = 0; i < TOTAL; i++) {
+    snowflakes.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        size: Math.random() * 18 + 10,
+        speed: Math.random() * 1.4 + 0.9, // tốc độ vừa
+        drift: Math.random() * 0.4 - 0.2,
+        alpha: Math.random() * 0.4 + 0.6
+    });
+}
+
+let lastTime = performance.now();
+
+function animateSnow(now) {
+    const delta = (now - lastTime) / 16.67; // chuẩn hoá 60fps
+    lastTime = now;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    snowflakes.forEach(s => {
+        s.y += s.speed * delta;
+        s.x += s.drift * delta;
+
+        if (s.y > canvas.height + 30) {
+            s.y = -30;
+            s.x = Math.random() * canvas.width;
+        }
+
+        ctx.globalAlpha = s.alpha;
+        ctx.font = s.size + "px serif";
+        ctx.fillText("❄️", s.x, s.y);
+    });
+
+    ctx.globalAlpha = 1;
+    requestAnimationFrame(animateSnow);
+}
+
+requestAnimationFrame(animateSnow);
+
+// ================================
+// MỞ QUÀ
+// ================================
+const gift = document.getElementById("gift");
+const content = document.getElementById("content");
+
+gift.onclick = () => {
+    gift.style.display = "none";
+    content.style.display = "block";
+};
+</script>
+
+</body>
+</html>
+ 
